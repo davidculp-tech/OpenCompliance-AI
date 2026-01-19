@@ -39,9 +39,13 @@ Launch Backend:
 Bash
 
 cd backend
+
 uvicorn main:app --reload
+
 Open Dashboard: Launch index.html in any modern web browser.
+
 FastAPI: http://127.0.0.1:8000/docs#/
+
 
 🛠️ Key Features
 Live NIST Reference: Click any Control ID in your history to pull official NIST requirements, supplemental guidance, and related controls directly from the local database.
@@ -54,12 +58,14 @@ Remediation Mapping: Integrated plan tracking for failed or partial controls.
 
 Professional Reporting: Generate an instant PDF Audit Report of your current posture.
 
+
 📂 Architecture
 Frontend: Tailwind CSS & Vanilla JavaScript (No heavy frameworks).
 
 Backend: Python FastAPI with SQLModel (SQLite).
 
 Database: Automatic seeding from NIST CSV files upon first launch.
+
 
 📖 How to Use
 Search: Use the ID input box to search for a control. A scrollable dropdown will appear with matches from the NIST library.
@@ -69,6 +75,7 @@ Assess: Enter your Implementation Statement. If the score is below 4, document y
 Review: Use the History table to see your progress. Click the IDs to double-check the "Wealth of Info" provided by the NIST modal to ensure your statement matches the requirement.
 
 Export: Click "Export PDF" to provide a hard copy for auditors or management.
+
 
 💡 Final Maintenance Tips
 keep these three points in mind for long-term use:
