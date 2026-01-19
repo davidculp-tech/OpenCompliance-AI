@@ -3,6 +3,7 @@
 ### **NIST 800-53 Rev. 5 Assessment Engine**
 
 OpenCompliance AI is a lightweight, local-first GRC tool designed to track security control maturity against the NIST 800-53 framework.
+![License](https://img.shields.io/badge/license-MIT-green) ![Python](https://img.shields.io/badge/python-3.11-blue) ![Ollama](https://img.shields.io/badge/AI-Ollama-orange)
 
 ## **📦 Requirements**
 
