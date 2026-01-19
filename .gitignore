@@ -1,0 +1,9 @@
+# Ignore the database and local data folder
+data/
+backend/data/
+*.db
+
+# Ignore Python cache and environment
+__pycache__/
+venv/
+.env

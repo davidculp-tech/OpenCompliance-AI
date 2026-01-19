@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpenCompliance AI | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+	<style>
+		.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+		.custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+		.custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+		.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+	</style>
+</head>
+<body class="bg-[#0f172a] text-gray-100 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-12">
+            <h1 class="text-3xl font-extrabold text-blue-400 tracking-tight">OpenCompliance AI <span class="text-gray-500 font-light text-xl">| GRC Engine</span></h1>
+            <div class="bg-gray-800/80 px-6 py-3 rounded-xl border border-gray-700">
+                <p class="text-[10px] uppercase text-gray-400 font-black">Overall Maturity</p>
+                <h2 id="avgScore" class="text-3xl font-bold text-white">0.0</h2>
+            </div>
+        </header>
+
+        <section class="bg-gray-800 p-8 rounded-2xl border border-gray-700 shadow-2xl mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative mb-6">
+                <input id="ref_id" onkeyup="searchLibrary(this.value)" type="text" placeholder="ID (e.g. AC-7)" class="bg-gray-900 p-4 rounded-lg border border-gray-700 outline-none focus:border-blue-500 transition-all">
+                <select id="score" class="bg-gray-900 p-4 rounded-lg border border-gray-700">
+                    <option value="1">1 - Initial</option><option value="2">2 - Managed</option>
+                    <option value="3" selected>3 - Defined</option><option value="4">4 - Measured</option>
+                    <option value="5">5 - Optimized</option>
+                </select>
+                <div id="suggestions" class="absolute top-20 left-0 w-full md:w-1/2 bg-gray-900 border border-gray-700 rounded-lg hidden z-50 shadow-2xl max-h-60 overflow-y-auto custom-scrollbar"></div>
+            </div>
+            <textarea id="statement" rows="3" placeholder="Implementation Statement" class="w-full bg-gray-900 p-4 rounded-lg border border-gray-700 mb-4"></textarea>
+            <textarea id="remediation_plan" rows="2" placeholder="Remediation Plan" class="w-full bg-gray-900 p-4 rounded-lg border border-gray-700 mb-6"></textarea>
+            <button onclick="submitData()" class="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-lg font-bold transition-all shadow-lg">Save Assessment</button>
+        </section>
+
+        <section class="bg-gray-800/30 p-8 rounded-2xl border border-gray-700">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-xl font-bold">Assessment History</h3>
+                <div class="flex gap-4">
+                    <button onclick="generatePDF()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs font-bold transition-all">📥 Export PDF</button>
+                    <button onclick="refreshUI()" class="text-blue-400 text-sm hover:underline">🔄 Refresh Data</button>
+                </div>
+            </div>
+            <table class="w-full text-left">
+                <thead class="text-gray-500 text-[10px] uppercase tracking-widest border-b border-gray-700">
+                    <tr><th class="pb-4">Year</th><th class="pb-4">Control ID</th><th class="pb-4">Status</th><th class="pb-4">Assessment Details</th></tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </section>
+    </div>
+
+    <div id="controlModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] p-6 backdrop-blur-sm">
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-10 shadow-2xl custom-scrollbar">
+            <div class="flex justify-between items-start mb-6">
+                <h2 id="modalTitle" class="text-3xl font-bold text-blue-400"></h2>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-white text-3xl">&times;</button>
+            </div>
+            <div class="space-y-8">
+                <div>
+                    <h4 class="text-[10px] uppercase text-gray-500 font-black mb-2 tracking-widest">Requirement</h4>
+                    <p id="modalText" class="text-gray-200 bg-gray-900 p-6 rounded-xl border border-gray-700 whitespace-pre-wrap leading-relaxed"></p>
+                </div>
+                <div>
+                    <h4 class="text-[10px] uppercase text-gray-500 font-black mb-2 tracking-widest">Guidance & Discussion</h4>
+                    <p id="modalDiscussion" class="text-gray-400 text-sm italic leading-relaxed"></p>
+                </div>
+                <div id="relatedBox" class="pt-4 border-t border-gray-700">
+                    <h4 class="text-[10px] uppercase text-gray-500 font-black mb-1">Related Controls</h4>
+                    <p id="modalRelated" class="text-blue-500 text-xs font-mono"></p>
+                </div>
+            </div>
+			<div class="pt-4 border-t border-gray-700 mt-6">
+				<div class="flex justify-between items-center mb-2">
+					<h4 class="text-[10px] uppercase text-gray-500 font-black tracking-widest">AI Audit Feedback</h4>
+					<button id="aiBtn" onclick="getAIFeedback()" class="text-[10px] bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 px-2 py-1 rounded border border-blue-500/30 transition">
+						✨ Run AI Analysis
+					</button>
+				</div>
+				<p id="aiContent" class="text-xs text-gray-400 italic">Save an assessment for this ID, then click "Run AI Analysis" for an expert review.</p>
+			</div>
+        </div>
+    </div>
+
+    <script>
+        async function refreshUI() { await loadHistory(); await loadTrends(); }
+        async function searchLibrary(val) {
+            const box = document.getElementById('suggestions');
+            if (val.length < 2) { box.classList.add('hidden'); return; }
+            const resp = await fetch(`http://127.0.0.1:8000/library/search?q=${val}`);
+            const data = await resp.json();
+            box.innerHTML = data.map(item => `<div onclick="selectRef('${item.identifier}')" class="p-4 hover:bg-gray-800 cursor-pointer border-b border-gray-800 last:border-0">${item.identifier} - ${item.name}</div>`).join('');
+            box.classList.remove('hidden');
+        }
+        function selectRef(id) { document.getElementById('ref_id').value = id; document.getElementById('suggestions').classList.add('hidden'); }
+        function getStatusBadge(score) {
+            let color = score >= 4 ? 'emerald' : score === 3 ? 'amber' : 'rose';
+            let label = score >= 4 ? 'PASS' : score === 3 ? 'PARTIAL' : 'FAIL';
+            return `<div class="flex items-center gap-3"><span class="px-2 py-1 rounded text-[10px] font-black bg-${color}-950 text-${color}-400 border border-${color}-700/50">${label}</span><span class="font-bold text-white">${score}</span></div>`;
+        }
+        async function submitData() {
+            const data = { audit_year: 2026, ref_id: document.getElementById('ref_id').value, score: parseInt(document.getElementById('score').value), implementation_statement: document.getElementById('statement').value, remediation_plan: document.getElementById('remediation_plan').value, category: "General" };
+            await fetch('http://127.0.0.1:8000/submit-assessment/', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            document.getElementById('statement').value = ""; document.getElementById('remediation_plan').value = ""; document.getElementById('ref_id').value = "";
+            refreshUI();
+        }
+        async function loadHistory() {
+            const resp = await fetch('http://127.0.0.1:8000/history-all/');
+            const data = await resp.json();
+            document.getElementById('historyBody').innerHTML = data.map(d => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/20 transition-all">
+                    <td class="py-6 text-sm text-gray-500 font-medium">${d.audit_year}</td>
+                    <td class="py-6"><button onclick="openModal('${d.ref_id}')" class="text-blue-400 font-bold hover:text-blue-300 transition-colors underline decoration-blue-900 underline-offset-4">${d.ref_id}</button></td>
+                    <td class="py-6">${getStatusBadge(d.score)}</td>
+                    <td class="py-6 text-sm">
+                        <div class="text-gray-300 mb-2 leading-relaxed">${d.implementation_statement}</div>
+                        ${d.remediation_plan ? `<div class="text-rose-400 text-[11px] font-medium bg-rose-950/20 p-2 rounded border-l-2 border-rose-500">Plan: ${d.remediation_plan}</div>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        async function openModal(id) {
+            const resp = await fetch(`http://127.0.0.1:8000/library/get/${encodeURIComponent(id)}`);
+            const control = await resp.json();
+            if (control && !control.error) {
+                document.getElementById('modalTitle').innerText = `${control.identifier}: ${control.name}`;
+                document.getElementById('modalText').innerText = control.control_text;
+                document.getElementById('modalDiscussion').innerText = control.discussion || "No additional discussion provided.";
+                document.getElementById('modalRelated').innerText = control.related || "None";
+                document.getElementById('controlModal').classList.replace('hidden', 'flex');
+            }
+        }
+        function closeModal() { document.getElementById('controlModal').classList.replace('flex', 'hidden'); }
+        async function loadTrends() {
+            const resp = await fetch('http://127.0.0.1:8000/history-all/');
+            const data = await resp.json();
+            const total = data.reduce((acc, curr) => acc + curr.score, 0);
+            document.getElementById('avgScore').innerText = data.length > 0 ? (total / data.length).toFixed(1) : "0.0";
+        }
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            doc.setFontSize(22); doc.text("Compliance Audit Report", 14, 20);
+            doc.setFontSize(10); doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 28);
+            const tableData = [];
+            document.querySelectorAll("#historyBody tr").forEach(row => {
+                const cols = row.querySelectorAll("td");
+                tableData.push([cols[0].innerText, cols[1].innerText, cols[2].innerText, cols[3].innerText]);
+            });
+            doc.autoTable({ head: [['Year', 'ID', 'Status/Score', 'Details']], body: tableData, startY: 35, theme: 'grid', headStyles: {fillColor: [30, 41, 59]} });
+            doc.save("Compliance_Report_Final.pdf");
+        }
+		async function getAIFeedback() {
+			const title = document.getElementById('modalTitle').innerText;
+			const id = title.split(':')[0]; // Extract just the ID like 'AC-7'
+			const contentBox = document.getElementById('aiContent');
+			const btn = document.getElementById('aiBtn');
+			
+			contentBox.innerText = "Analyzing implementation... (this may take a moment)";
+			btn.disabled = true;
+
+			try {
+				// We assume 2026 as the current audit year
+				const resp = await fetch(`http://127.0.0.1:8000/analyze-compliance/${encodeURIComponent(id)}?year=2026`);
+				const data = await resp.json();
+				contentBox.innerText = data.ai_analysis;
+			} catch (err) {
+				contentBox.innerText = "Error contacting the AI engine.";
+			} finally {
+				btn.disabled = false;
+			}
+		}
+        window.onload = refreshUI;
+    </script>
+</body>
+</html>
